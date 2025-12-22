@@ -375,21 +375,17 @@ if botao_consultar and cnpj_input:
 
                     st.divider() 
 
-                    # AQUI ESTÁ A MUDANÇA: Botão junto com o aviso
                     st.caption("Inscrição Estadual")
                     if dados_finais['ie']:
                         st.code(dados_finais['ie'], language="text")
                     else:
                         st.warning("⚠️ Limite excedido ou IE não encontrada. Consulte manualmente:")
-                        # O botão agora aparece DENTRO do fluxo, logo abaixo do aviso
                         st.link_button("👉 Abrir Sintegra (Consulta IE)", "https://www.consultaie.com.br/")
 
                 st.divider()
 
                 st.markdown(f"**📍 Endereço:** {dados_finais['logradouro']} - {dados_finais['bairro']}")
                 st.markdown(f"**🗺️ Cidade:** {dados_finais['cidade']} - {dados_finais['uf']} | **CEP:** {dados_finais['cep']}")
-
-                # (O antigo bloco azul com botão foi removido daqui)
 
                 st.divider()
                 
