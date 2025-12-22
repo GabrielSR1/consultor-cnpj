@@ -6,7 +6,7 @@ import time
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
     page_title="Triagem Fiscal",
-    page_icon="🏢", 
+    page_icon="logo_sr.png", 
     layout="centered"
 )
 
@@ -252,11 +252,10 @@ def classificar_cnae(codigos):
         return "Contribuinte do ICMS", "🟢"
     return "Contatar Depto. Contábil", "⚠️"
 
-# --- TÍTULO DO APP ---
+# --- INTERFACE ---
 st.title("🏢 Consulta & Triagem Fiscal")
 st.markdown("Digite o CNPJ abaixo para verificar a **Classificação**, **Situação** e **Inscrição Estadual**.")
 
-# --- CAMPO DE BUSCA ---
 cnpj_input = st.text_input("CNPJ do Cliente", placeholder="00.000.000/0001-00")
 botao_consultar = st.button("Consultar CNPJ", type="primary")
 
@@ -266,12 +265,10 @@ if botao_consultar and cnpj_input:
     with st.spinner('Analisando dados nas bases do governo...'):
         time.sleep(0.5) 
         
-        # --- LÓGICA DE DUPLA CONSULTA ---
         sucesso = False
         dados_finais = {}
-        fonte_dados = ""
 
-        # 1. API Premium (CNPJ.ws)
+        # --- TENTATIVA 1: API PREMIUM (CNPJ.WS) ---
         try:
             url_premium = f"https://publica.cnpj.ws/cnpj/{cnpj_limpo}"
             resp = requests.get(url_premium)
@@ -279,6 +276,7 @@ if botao_consultar and cnpj_input:
                 data = resp.json()
                 estab = data.get('estabelecimento', {})
                 
+                # Dados Básicos
                 dados_finais['razao'] = data.get('razao_social')
                 dados_finais['situacao'] = estab.get('situacao_cadastral', '')
                 dados_finais['cidade'] = estab.get('cidade', {}).get('nome')
@@ -287,6 +285,7 @@ if botao_consultar and cnpj_input:
                 dados_finais['bairro'] = estab.get('bairro')
                 dados_finais['cep'] = estab.get('cep')
                 
+                # CNAEs
                 cnaes = []
                 princ = estab.get('atividade_principal', {})
                 if princ.get('id'): cnaes.append(princ.get('id'))
@@ -301,20 +300,37 @@ if botao_consultar and cnpj_input:
                 dados_finais['cnaes_codigos'] = cnaes
                 dados_finais['cnaes_secundarios_texto'] = secundarias
                 
-                ie_encontrada = "Isento / Não Localizada"
-                for insc in estab.get('inscricoes_estaduais', []):
-                    if insc.get('ativo') and insc.get('estado', {}).get('sigla') == dados_finais['uf']:
-                        ie_encontrada = insc.get('inscricao_estadual')
-                        break
+                # --- LÓGICA DE INSCRIÇÃO ESTADUAL + STATUS ---
+                ie_encontrada = None
+                status_ie = False # Padrão
+                
+                inscricoes = estab.get('inscricoes_estaduais', [])
+                
+                for insc in inscricoes:
+                    # Verifica se a IE é do mesmo estado do endereço da empresa
+                    if insc.get('estado', {}).get('sigla') == dados_finais['uf']:
+                        current_ie = insc.get('inscricao_estadual')
+                        current_active = insc.get('ativo') # Pega o valor booleano (true/false)
+                        
+                        # Se ainda não achamos nenhuma, ou se achamos uma ATIVA (prioridade), salvamos
+                        if ie_encontrada is None or current_active:
+                            ie_encontrada = current_ie
+                            status_ie = current_active
+                        
+                        # Se achou uma ativa no estado correto, pode parar de procurar
+                        if current_active:
+                            break
+                
                 dados_finais['ie'] = ie_encontrada
+                # Transforma o True/False em texto legível
+                dados_finais['ie_status_texto'] = "Habilitada" if status_ie else "Não Habilitada"
                 
                 sucesso = True
-                fonte_dados = "Premium"
 
         except:
             pass
 
-        # 2. API Backup (Open.cnpja)
+        # --- TENTATIVA 2: FALLBACK (OPEN.CNPJA) ---
         if not sucesso:
             try:
                 url_backup = f"https://open.cnpja.com/office/{cnpj_limpo}"
@@ -343,10 +359,10 @@ if botao_consultar and cnpj_input:
                     
                     dados_finais['cnaes_codigos'] = cnaes
                     dados_finais['cnaes_secundarios_texto'] = secundarias
+                    
                     dados_finais['ie'] = None 
                     
                     sucesso = True
-                    fonte_dados = "Backup"
             except:
                 pass
 
@@ -375,9 +391,12 @@ if botao_consultar and cnpj_input:
 
                     st.divider() 
 
+                
                     st.caption("Inscrição Estadual")
                     if dados_finais['ie']:
-                        st.code(dados_finais['ie'], language="text")
+                  
+                        texto_ie = f"{dados_finais['ie']} ({dados_finais['ie_status_texto']})"
+                        st.code(texto_ie, language="text")
                     else:
                         st.warning("⚠️ Limite excedido ou IE não encontrada. Consulte manualmente:")
                         st.link_button("👉 Abrir Sintegra (Consulta IE)", "https://www.consultaie.com.br/")
