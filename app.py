@@ -6,7 +6,7 @@ import time
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
     page_title="Consulta Fiscal",
-    page_icon="logo_sr.png",
+    page_icon="🏢",
     layout="centered"
 )
 
