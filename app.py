@@ -5,8 +5,8 @@ import time
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Consulta Fiscal",
-    page_icon="🏢",
+    page_title="Triagem Fiscal",
+    page_icon="🏢", 
     layout="centered"
 )
 
@@ -264,14 +264,14 @@ if botao_consultar and cnpj_input:
     cnpj_limpo = re.sub(r'\D', '', cnpj_input)
     
     with st.spinner('Analisando dados nas bases do governo...'):
-        time.sleep(0.5) # Charme visual
+        time.sleep(0.5) 
         
-        # --- LÓGICA DE DUPLA CONSULTA (FALLBACK) ---
+        # --- LÓGICA DE DUPLA CONSULTA ---
         sucesso = False
         dados_finais = {}
         fonte_dados = ""
 
-        # 1. Tenta API Premium (CNPJ.ws)
+        # 1. API Premium (CNPJ.ws)
         try:
             url_premium = f"https://publica.cnpj.ws/cnpj/{cnpj_limpo}"
             resp = requests.get(url_premium)
@@ -279,7 +279,6 @@ if botao_consultar and cnpj_input:
                 data = resp.json()
                 estab = data.get('estabelecimento', {})
                 
-                # Extrai dados
                 dados_finais['razao'] = data.get('razao_social')
                 dados_finais['situacao'] = estab.get('situacao_cadastral', '')
                 dados_finais['cidade'] = estab.get('cidade', {}).get('nome')
@@ -288,7 +287,6 @@ if botao_consultar and cnpj_input:
                 dados_finais['bairro'] = estab.get('bairro')
                 dados_finais['cep'] = estab.get('cep')
                 
-                # CNAEs
                 cnaes = []
                 princ = estab.get('atividade_principal', {})
                 if princ.get('id'): cnaes.append(princ.get('id'))
@@ -303,7 +301,6 @@ if botao_consultar and cnpj_input:
                 dados_finais['cnaes_codigos'] = cnaes
                 dados_finais['cnaes_secundarios_texto'] = secundarias
                 
-                # IE
                 ie_encontrada = "Isento / Não Localizada"
                 for insc in estab.get('inscricoes_estaduais', []):
                     if insc.get('ativo') and insc.get('estado', {}).get('sigla') == dados_finais['uf']:
@@ -312,12 +309,12 @@ if botao_consultar and cnpj_input:
                 dados_finais['ie'] = ie_encontrada
                 
                 sucesso = True
-                fonte_dados = "Premium (IE Automática)"
+                fonte_dados = "Premium"
 
         except:
             pass
 
-        # 2. Tenta API Backup (Open.cnpja) se a primeira falhou
+        # 2. API Backup (Open.cnpja)
         if not sucesso:
             try:
                 url_backup = f"https://open.cnpja.com/office/{cnpj_limpo}"
@@ -346,30 +343,24 @@ if botao_consultar and cnpj_input:
                     
                     dados_finais['cnaes_codigos'] = cnaes
                     dados_finais['cnaes_secundarios_texto'] = secundarias
-                    dados_finais['ie'] = None # Não tem IE nessa API
+                    dados_finais['ie'] = None 
                     
                     sucesso = True
-                    fonte_dados = "Backup (Sem IE)"
+                    fonte_dados = "Backup"
             except:
                 pass
 
         # --- EXIBIÇÃO NA TELA ---
         if sucesso:
-            # Classificação
             classificacao, icone = classificar_cnae(dados_finais['cnaes_codigos'])
             
-            # Cabeçalho Principal
             st.subheader(dados_finais['razao'])
             
-            # Alerta se inativa
             if dados_finais['situacao'] != "Ativa":
                 st.error(f"⚠️ EMPRESA NÃO ESTÁ ATIVA! Situação: {dados_finais['situacao']}")
             else:
-                # --- NOVO LAYOUT (Sem cortar texto) ---
-                # Criamos um container com borda para destacar as informações principais
                 with st.container(border=True):
-                    # Primeira linha: Situação e Classificação
-                    c1, c2 = st.columns([1, 2]) # A coluna 2 é o dobro da 1 para caber o texto longo
+                    c1, c2 = st.columns([1, 2]) 
                     
                     with c1:
                         st.caption("Situação Cadastral")
@@ -380,32 +371,28 @@ if botao_consultar and cnpj_input:
                     
                     with c2:
                         st.caption("Classificação Fiscal")
-                        # O markdown aqui permite quebra de linha automática
                         st.markdown(f"#### {icone} {classificacao.upper()}")
 
-                    st.divider() # Linha divisória para organizar
+                    st.divider() 
 
-                    # Segunda linha: Inscrição Estadual (com destaque total)
+                    # AQUI ESTÁ A MUDANÇA: Botão junto com o aviso
                     st.caption("Inscrição Estadual")
                     if dados_finais['ie']:
-                        st.code(dados_finais['ie'], language="text") # O .code dá um destaque visual e botão de copiar
+                        st.code(dados_finais['ie'], language="text")
                     else:
-                        st.warning("⚠️ Consultar no link abaixo")
+                        st.warning("⚠️ Limite excedido ou IE não encontrada. Consulte manualmente:")
+                        # O botão agora aparece DENTRO do fluxo, logo abaixo do aviso
+                        st.link_button("👉 Abrir Sintegra (Consulta IE)", "https://www.consultaie.com.br/")
 
                 st.divider()
 
-                # Endereço
                 st.markdown(f"**📍 Endereço:** {dados_finais['logradouro']} - {dados_finais['bairro']}")
                 st.markdown(f"**🗺️ Cidade:** {dados_finais['cidade']} - {dados_finais['uf']} | **CEP:** {dados_finais['cep']}")
 
-                # Se não achou IE, mostra o botão
-                if not dados_finais['ie']:
-                    st.info("⚠️ Limite de consultas automáticas de IE excedido. Consulte manualmente:")
-                    st.link_button("Consultar Inscrição Estadual (Sintegra)", "https://www.consultaie.com.br/")
+                # (O antigo bloco azul com botão foi removido daqui)
 
                 st.divider()
                 
-                # Atividades
                 st.markdown("### 📋 Atividades Econômicas")
                 st.markdown(f"**Atividade Principal:** {dados_finais['cnaes_codigos'][0]} - {dados_finais['desc_princ']}")
                 
