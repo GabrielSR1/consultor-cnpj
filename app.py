@@ -6,7 +6,7 @@ import time
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
     page_title="Triagem Fiscal",
-    page_icon="🏢", 
+    page_icon="logo_sr.png", 
     layout="centered"
 )
 
