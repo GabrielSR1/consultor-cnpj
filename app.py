@@ -5,8 +5,8 @@ import time
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Triagem Fiscal",
-    page_icon="🏢",
+    page_title="Consulta Fiscal",
+    page_icon="logo_sr.png",
     layout="centered"
 )
 
@@ -365,16 +365,32 @@ if botao_consultar and cnpj_input:
             if dados_finais['situacao'] != "Ativa":
                 st.error(f"⚠️ EMPRESA NÃO ESTÁ ATIVA! Situação: {dados_finais['situacao']}")
             else:
-                # Cartões de Informação (3 colunas)
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Situação", dados_finais['situacao'].upper())
-                col2.metric("Tipo de Cliente", classificacao.upper())
-                
-                # Lógica visual da IE
-                if dados_finais['ie']:
-                    col3.metric("Inscrição Estadual", dados_finais['ie'])
-                else:
-                    col3.warning("IE: Consultar Link Abaixo 👇")
+                # --- NOVO LAYOUT (Sem cortar texto) ---
+                # Criamos um container com borda para destacar as informações principais
+                with st.container(border=True):
+                    # Primeira linha: Situação e Classificação
+                    c1, c2 = st.columns([1, 2]) # A coluna 2 é o dobro da 1 para caber o texto longo
+                    
+                    with c1:
+                        st.caption("Situação Cadastral")
+                        if dados_finais['situacao'] == "Ativa":
+                            st.success(f"**{dados_finais['situacao'].upper()}**", icon="✅")
+                        else:
+                            st.error(f"**{dados_finais['situacao'].upper()}**", icon="🚫")
+                    
+                    with c2:
+                        st.caption("Classificação Fiscal")
+                        # O markdown aqui permite quebra de linha automática
+                        st.markdown(f"#### {icone} {classificacao.upper()}")
+
+                    st.divider() # Linha divisória para organizar
+
+                    # Segunda linha: Inscrição Estadual (com destaque total)
+                    st.caption("Inscrição Estadual")
+                    if dados_finais['ie']:
+                        st.code(dados_finais['ie'], language="text") # O .code dá um destaque visual e botão de copiar
+                    else:
+                        st.warning("⚠️ Consultar no link abaixo")
 
                 st.divider()
 
