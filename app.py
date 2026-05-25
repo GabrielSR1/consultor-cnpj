@@ -330,42 +330,6 @@ if botao_consultar and cnpj_input:
         except:
             pass
 
-        # --- TENTATIVA 2: FALLBACK (OPEN.CNPJA) ---
-        if not sucesso:
-            try:
-                url_backup = f"https://open.cnpja.com/office/{cnpj_limpo}"
-                resp_back = requests.get(url_backup)
-                if resp_back.status_code == 200:
-                    data = resp_back.json()
-                    
-                    dados_finais['razao'] = data['company']['name']
-                    dados_finais['situacao'] = data['status'].get('text')
-                    dados_finais['cidade'] = data['address'].get('city')
-                    dados_finais['uf'] = data['address'].get('state')
-                    dados_finais['logradouro'] = f"{data['address'].get('street')}, {data['address'].get('number')}"
-                    dados_finais['bairro'] = data['address'].get('district')
-                    dados_finais['cep'] = data['address'].get('zip')
-                    
-                    cnaes = []
-                    main = data['mainActivity']
-                    if main.get('id'): cnaes.append(str(main.get('id')))
-                    dados_finais['desc_princ'] = main.get('text')
-                    
-                    secundarias = []
-                    for ativ in data['sideActivities']:
-                        if ativ.get('id'):
-                            cnaes.append(str(ativ.get('id')))
-                            secundarias.append(f"{ativ.get('id')} - {ativ.get('text')}")
-                    
-                    dados_finais['cnaes_codigos'] = cnaes
-                    dados_finais['cnaes_secundarios_texto'] = secundarias
-                    
-                    dados_finais['ie'] = None 
-                    
-                    sucesso = True
-            except:
-                pass
-
         # --- EXIBIÇÃO NA TELA ---
         if sucesso:
             classificacao, icone = classificar_cnae(dados_finais['cnaes_codigos'])
@@ -391,15 +355,8 @@ if botao_consultar and cnpj_input:
 
                     st.divider() 
 
-                
                     st.caption("Inscrição Estadual")
-                    if dados_finais['ie']:
-                  
-                        texto_ie = f"{dados_finais['ie']} ({dados_finais['ie_status_texto']})"
-                        st.code(texto_ie, language="text")
-                    else:
-                        st.warning("⚠️ Limite excedido ou IE não encontrada. Consulte manualmente:")
-                        st.link_button("👉 Abrir Sintegra (Consulta IE)", "https://www.consultaie.com.br/")
+                    st.markdown("Consulte a IE: https://www.consultaie.com.br/")
 
                 st.divider()
 
