@@ -33,8 +33,8 @@ def classificar_cnae(codigos):
     return "Contatar Depto. Contábil", "⚠️"
 
 # --- INTERFACE ---
-st.title("🏢 Consulta & Triagem Fiscal")
-st.markdown("Digite o CNPJ abaixo para verificar a **Classificação**, **Situação** e **Inscrição Estadual**.")
+st.title("🏢 Consulta da Situação Cadastral e Tipo de Cliente")
+st.markdown("Digite o CNPJ abaixo para verificar a **Situação Cadastral**, **Tipo de Cliente** e **Endereço do Cliente**.")
 
 cnpj_input = st.text_input("CNPJ do Cliente", placeholder="00.000.000/0001-00")
 botao_consultar = st.button("Consultar CNPJ", type="primary")
@@ -130,7 +130,7 @@ if botao_consultar and cnpj_input:
                             st.error(f"**{dados_finais['situacao'].upper()}**", icon="🚫")
                     
                     with c2:
-                        st.caption("Classificação Fiscal")
+                        st.caption("Tipo de Cliente")
                         st.markdown(f"#### {icone} {classificacao.upper()}")
 
                     st.divider() 
